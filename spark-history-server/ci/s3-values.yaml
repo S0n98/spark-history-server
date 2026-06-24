@@ -1,0 +1,43 @@
+# Example: S3-backed history server (IRSA / IAM role for service accounts)
+sparkConf:
+  # Use a subdirectory path (not bucket root) to avoid
+  # hadoop-aws 3.3.4 S3Guard path issues with S3-compatible stores
+  spark.history.fs.logDirectory: "s3a://my-spark-logs-bucket/history"
+  spark.history.fs.update.interval: "30s"
+  spark.history.retainedApplications: "100"
+  spark.history.fs.cleaner.enabled: "true"
+  spark.history.fs.cleaner.maxAge: "14d"
+
+s3:
+  enabled: true
+  extraConf:
+    spark.hadoop.fs.s3a.impl: "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    spark.hadoop.fs.s3a.aws.credentials.provider: "com.amazonaws.auth.WebIdentityTokenCredentialsProvider"
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/spark-history-server"
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: spark-history.internal.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: spark-history-tls
+      hosts:
+        - spark-history.internal.example.com

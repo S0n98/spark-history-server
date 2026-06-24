@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "spark-history-server.fullname" . }}-conf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "spark-history-server.labels" . | nindent 4 }}
+data:
+  spark-defaults.conf: |
+    {{- include "spark-history-server.sparkConf" . | nindent 4 }}
+  {{- if .Values.hadoopConf }}
+  core-site.xml: |
+    <?xml version="1.0"?>
+    <configuration>
+    {{- range $k, $v := .Values.hadoopConf }}
+      <property>
+        <name>{{ $k }}</name>
+        <value>{{ $v }}</value>
+      </property>
+    {{- end }}
+    </configuration>
+  {{- end }}

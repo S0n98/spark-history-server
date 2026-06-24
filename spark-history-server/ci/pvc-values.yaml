@@ -1,0 +1,13 @@
+# Example: local PVC storage (good for dev / on-prem)
+sparkConf:
+  spark.history.fs.logDirectory: "file:///mnt/spark-logs"
+  spark.history.fs.update.interval: "10s"
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: 50Gi
+  mountPath: /mnt/spark-logs
+
+service:
+  type: NodePort

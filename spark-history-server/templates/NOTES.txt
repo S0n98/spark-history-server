@@ -1,0 +1,28 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Apache Spark History Server — {{ .Chart.AppVersion }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+Log directory: {{ index .Values.sparkConf "spark.history.fs.logDirectory" }}
+
+{{ if .Values.ingress.enabled -}}
+Ingress URL(s):
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else if eq .Values.service.type "NodePort" -}}
+Access via NodePort:
+  export NODE_PORT=$(kubectl get svc {{ include "spark-history-server.fullname" . }} -n {{ .Release.Namespace }} -o jsonpath='{.spec.ports[0].nodePort}')
+  export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+  echo "Spark History Server: http://$NODE_IP:$NODE_PORT"
+{{- else -}}
+Port-forward to access the UI locally:
+  kubectl port-forward svc/{{ include "spark-history-server.fullname" . }} 18080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+  open http://localhost:18080
+{{- end }}
+
+Make sure your Spark jobs write event logs to the configured directory:
+  spark.eventLog.enabled  true
+  spark.eventLog.dir      {{ index .Values.sparkConf "spark.history.fs.logDirectory" }}

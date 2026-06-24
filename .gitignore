@@ -1,0 +1,17 @@
+# Helm packages
+#*.tgz
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / credentials
+*-secret*.yaml
+*.key
+*.pem

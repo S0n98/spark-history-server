@@ -1,0 +1,72 @@
+sparkConf:
+  "spark.history.fs.logDirectory": "s3a://spark-logs/events"
+  "spark.history.fs.update.interval": "10s"
+  "spark.history.ui.maxApplications": "50"
+  "spark.history.retainedApplications": "50"
+  "spark.history.fs.cleaner.enabled": "false"
+
+s3:
+  enabled: true
+  endpoint: "http://minio.default.svc.cluster.local:80"
+  pathStyleAccess: true
+  credentialsSecret: "spark-history-s3-creds"
+
+extraEnvVars:
+  - name: SPARK_DIST_CLASSPATH
+    value: "/opt/spark/extra-jars/*"
+
+extraInitContainers:
+  - name: download-s3-jars
+    image: busybox:1.36
+    command:
+      - sh
+      - -c
+      - |
+        wget -q -O /extra-jars/hadoop-aws-3.3.4.jar https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar &&
+        wget -q -O /extra-jars/aws-java-sdk-bundle-1.12.262.jar https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar &&
+        ls -la /extra-jars/
+    volumeMounts:
+      - name: extra-jars
+        mountPath: /extra-jars
+
+volumes:
+  - name: extra-jars
+    emptyDir: {}
+
+volumeMounts:
+  - name: extra-jars
+    mountPath: /opt/spark/extra-jars
+    readOnly: true
+
+podSecurityContext:
+  fsGroup: 185
+  runAsUser: 185
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+service:
+  type: ClusterIP
+  port: 18080
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: his.local
+      paths:
+        - path: /
+          pathType: Prefix
