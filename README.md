@@ -23,7 +23,7 @@ The Spark History Server provides a web UI for viewing completed Spark applicati
 ### Install from the packaged chart
 
 ```bash
-helm install spark-history-server spark-history-server-1.0.0.tgz \
+helm install spark-history-server spark-history-server-1.1.1.tgz \
   -f deployed-values.yaml \
   -n default
 ```
@@ -38,7 +38,57 @@ helm install spark-history-server ./spark-history-server \
 
 ## S3/MinIO Setup
 
-The default `apache/spark:3.5.1` image does not include the Hadoop AWS connector JARs. This chart supports an `extraInitContainers` field to download them at startup.
+The default `apache/spark:3.5.1` image does not include the Hadoop AWS connector JARs. You have two options:
+
+- **Option A** — [Build a custom image](#option-a-build-a-custom-image) with the JARs baked in (recommended for production)
+- **Option B** — [Download at startup](#option-b-download-at-startup) via an init container (simpler, but adds ~30s to each pod start)
+
+### Option A: Build a custom image
+
+A `Dockerfile` is provided in `docker/`:
+
+```dockerfile
+FROM apache/spark:3.5.1
+
+USER root
+
+RUN wget -q -O /opt/spark/jars/hadoop-aws-3.3.4.jar \
+      https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    wget -q -O /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
+      https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar && \
+    chmod 644 /opt/spark/jars/hadoop-aws-3.3.4.jar \
+              /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar
+
+USER spark
+```
+
+Build and push:
+
+```bash
+docker build -t <registry>/spark-history-server:3.5.1-s3 docker/
+docker push <registry>/spark-history-server:3.5.1-s3
+```
+
+Then deploy with the custom image — no init containers, extra volumes, or `SPARK_DIST_CLASSPATH` needed:
+
+```yaml
+image:
+  repository: <registry>/spark-history-server
+  tag: "3.5.1-s3"
+
+sparkConf:
+  "spark.history.fs.logDirectory": "s3a://spark-logs/events"
+
+s3:
+  enabled: true
+  endpoint: "http://minio.default.svc.cluster.local:80"
+  pathStyleAccess: true
+  credentialsSecret: "spark-history-s3-creds"
+```
+
+### Option B: Download at startup
+
+This chart supports an `extraInitContainers` field to download them at startup.
 
 ### 1. Create the S3 credentials secret
 
