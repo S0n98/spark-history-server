@@ -231,8 +231,3 @@ extraConfigMaps: []
 extraSecrets: []
 # - name: my-keytab
 #   mountPath: /etc/security/keytab
-
-# ── RBAC ─────────────────────────────────────────────────────────────────────
-rbac:
-  # -- Create a ClusterRole that lets the history server read Pod logs (optional)
-  create: false

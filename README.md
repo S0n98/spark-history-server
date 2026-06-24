@@ -23,7 +23,7 @@ The Spark History Server provides a web UI for viewing completed Spark applicati
 ### Install from the packaged chart
 
 ```bash
-helm install spark-history-server spark-history-server-1.1.1.tgz \
+helm install spark-history-server spark-history-server-1.2.0.tgz \
   -f deployed-values.yaml \
   -n default
 ```
@@ -201,8 +201,6 @@ The `hadoop-aws` and `aws-java-sdk-bundle` JARs must also be available on the Sp
 | `service.type` | Service type | `ClusterIP` |
 | `service.port` | Service port | `18080` |
 | `resources` | CPU/Memory resources | See `values.yaml` |
-| `rbac.create` | Create RBAC resources | `false` |
-| `autoscaling.enabled` | Enable HPA | `false` |
 
 ## Known Issues
 
